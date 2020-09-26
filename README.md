@@ -1,21 +1,30 @@
 # sensor_imu
-WeChangeTech USB/Uart IMU modul ROS package
 
-Step1: clone this package to your workspace/src fold
+WeChangeTech USB/Uart IMU module ROS package
 
-Step2: catkin_make your workspace
+-----
 
-Step3: roscd sensor_imu/script/
+<p align="center">
+    <img src="img/imu_module.jpg"/>
+    </br>
+    <img src="img/imu_params.jpg"/>
+</p>
 
-Step4: sudo ./udev.sh
+## build & run
 
-Step5: connect IMU device to your PC via USB cable
+* udev (do only once)
+  ```sh
+  roscd sensor_imu/script/
+  sudo ./udev.sh
+  ```
 
-Step6: roslaunch sensor_imu sensor_imu.launch
+* build
+  ```sh
+  catkin_make
+  ```
 
-Now you can get /imu and /mag topic
-
-Note:Step 1~4 need do only once when you install this package
-
-Change NOTE:
-add imu data mode switch,default is gravity mode,launch use roslaunch sensor_imu sensor_imu.launch gravity:=false can out put none gravity imu data(z,y,z line accel is zero when static or constant speed)
+* run
+  ```sh
+  # with `gravity:=false` can output none gravity imu data(z,y,z line accel is zero when static or constant speed)
+  roslaunch sensor_imu sensor_imu.launch [gravity:=false]
+  ```
