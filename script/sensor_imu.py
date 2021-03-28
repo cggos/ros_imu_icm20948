@@ -78,6 +78,7 @@ class Sensor:
         self.baudrate = int(rospy.get_param('~baudrate','115200'))
         self.imuId = rospy.get_param('~imu_id','imu')
         self.imu_topic = rospy.get_param('~imu_topic','imu')
+        self.imu_topic_filter = rospy.get_param('~imu_topic_filter','imu_filter')
         self.imu_freq = float(rospy.get_param('~imu_freq','100'))
         self.magId = rospy.get_param('~mag_id','mag')
         self.mag_topic = rospy.get_param('~mag_topic','mag')
@@ -93,6 +94,7 @@ class Sensor:
         self.Accel = [0,0,0]
         self.Quat = [0,0,0,0]
         self.Mag = [0,0,0]
+        self.AccTmp = [0,0,0]
         self.firmware_version = [0,0,0]
         self.hardware_version = [0,0,0]
         self.last_cmd_vel_time = rospy.Time.now()
@@ -114,6 +116,7 @@ class Sensor:
         rospy.loginfo("Sensor Open Succeed")
         #if move base type is ackermann car like robot and use ackermann msg ,sud ackermann topic,else sub cmd_vel topic
         self.imu_pub = rospy.Publisher(self.imu_topic,Imu,queue_size=10)
+        self.imu_pub_filter = rospy.Publisher(self.imu_topic_filter,Imu,queue_size=10)
         self.mag_pub = rospy.Publisher(self.mag_topic,MagneticField,queue_size=10)
         self.timer_communication = rospy.Timer(rospy.Duration(1.0/1000),self.timerCommunicationCB)
         self.timer_imu = rospy.Timer(rospy.Duration(1.0/self.imu_freq),self.timerIMUCB) 
@@ -244,7 +247,7 @@ class Sensor:
             self.serial.write(output)
         except:
             rospy.logerr("Get SN Command Send Faild")
-        self.serialIDLE_flag = 0     
+        self.serialIDLE_flag = 0        
     #IMU Timer callback function to get raw imu info
     def timerIMUCB(self,event):
         if self.gravity:
@@ -278,7 +281,16 @@ class Sensor:
         msg.orientation.x = self.Quat[1]
         msg.orientation.y = self.Quat[2]
         msg.orientation.z = self.Quat[3]
-        self.imu_pub.publish(msg)  
+        self.imu_pub.publish(msg)
+        # LPF
+        alpha = 0.8
+        self.AccTmp[0] = alpha * self.AccTmp[0] + (1-alpha) * msg.linear_acceleration.x
+        self.AccTmp[1] = alpha * self.AccTmp[1] + (1-alpha) * msg.linear_acceleration.y
+        self.AccTmp[2] = alpha * self.AccTmp[2] + (1-alpha) * msg.linear_acceleration.z
+        msg.linear_acceleration.x = self.AccTmp[0]
+        msg.linear_acceleration.y = self.AccTmp[1]
+        msg.linear_acceleration.z = self.AccTmp[2]
+        self.imu_pub_filter.publish(msg)
     #IMU Timer callback function to get raw imu info
     def timerMagCB(self,event):
         output = chr(0x5a) + chr(0x06) + chr(0x01) + chr(0x19) + chr(0x00) + chr(0xff) #0x33 is CRC-8 value
